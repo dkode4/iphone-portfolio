@@ -1,0 +1,1084 @@
+/* ============================================================
+   iPhone Portfolio — Dmitrij Kraliks
+   Aesthetic seeded from Uiverse "wise-ape-51" (ashif_6672)
+   ============================================================ */
+:root{
+    --frame:#1c1c1e;
+    --frame-edge:#3a3a3c;
+    --spring:cubic-bezier(0.25, 1, 0.5, 1);
+    --bezel:12px;                      /* frame thickness */
+    --screen-ratio:2.17;               /* real iPhone screen aspect (h/w) */
+    --phone-h:min(680px, 86vh);        /* height drives everything */
+    /* width derived so the SCREEN keeps the iPhone aspect ratio */
+    --phone-w:calc((var(--phone-h) - 2*var(--bezel)) / var(--screen-ratio) + 2*var(--bezel));
+    --radius:52px;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%}
+
+/* Stop the browser from flashing a white box on press/drag: kill tap-highlights,
+   accidental text-selection rectangles, image drag-ghosts and stray focus rings
+   across the phone UI. Text fields (Notes, sliders) stay selectable below. */
+.phone-stage, .phone-stage *{
+    -webkit-tap-highlight-color:transparent;
+    -webkit-user-select:none;user-select:none;
+    -webkit-user-drag:none;}
+.phone-stage img{-webkit-user-drag:none;user-drag:none;}
+.phone-stage :focus,.phone-stage :focus-visible{outline:none;}
+.phone-stage textarea,.phone-stage input{-webkit-user-select:text;user-select:text;}
+body{
+    font-family:-apple-system,BlinkMacSystemFont,"Inter","Segoe UI",sans-serif;
+    background:#05060a;
+    color:#fff;
+    min-height:100vh;
+    overflow:hidden;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    padding:24px 0;
+    -webkit-font-smoothing:antialiased;
+}
+
+/* ============================================================
+   Preloader — yellow cat (shown until heavy images decode)
+   While .is-loading is on <body>, the phone + background are
+   hidden so nothing pops in early; everything reveals at once.
+   ============================================================ */
+.preloader{position:fixed;inset:0;z-index:9999;
+    display:flex;flex-direction:column;align-items:center;justify-content:center;gap:34px;
+    background:radial-gradient(120% 120% at 50% 40%,#0b0d16 0%,#04050a 70%);
+    transition:opacity .55s ease;}
+body:not(.is-loading) .preloader{opacity:0;pointer-events:none;}
+.preloader.is-done{display:none;}
+
+/* keep everything else invisible until the reveal */
+body.is-loading .bg-stage,
+body.is-loading .phone-stage{opacity:0;}
+.bg-stage,.phone-stage{transition:opacity .6s ease .05s;}
+
+/* --- the spinner (Uiverse 12-bar fade) --- */
+.loader{position:relative;width:54px;height:54px;border-radius:10px;}
+.loader div{width:8%;height:24%;background:rgba(235,235,245,.9);position:absolute;
+    left:50%;top:30%;opacity:0;border-radius:50px;
+    box-shadow:0 0 3px rgba(0,0,0,.2);animation:fade458 1s linear infinite;}
+
+@keyframes fade458{from{opacity:1;}to{opacity:.25;}}
+
+.loader .bar1{transform:rotate(0deg) translate(0,-130%);animation-delay:0s;}
+.loader .bar2{transform:rotate(30deg) translate(0,-130%);animation-delay:-1.1s;}
+.loader .bar3{transform:rotate(60deg) translate(0,-130%);animation-delay:-1s;}
+.loader .bar4{transform:rotate(90deg) translate(0,-130%);animation-delay:-0.9s;}
+.loader .bar5{transform:rotate(120deg) translate(0,-130%);animation-delay:-0.8s;}
+.loader .bar6{transform:rotate(150deg) translate(0,-130%);animation-delay:-0.7s;}
+.loader .bar7{transform:rotate(180deg) translate(0,-130%);animation-delay:-0.6s;}
+.loader .bar8{transform:rotate(210deg) translate(0,-130%);animation-delay:-0.5s;}
+.loader .bar9{transform:rotate(240deg) translate(0,-130%);animation-delay:-0.4s;}
+.loader .bar10{transform:rotate(270deg) translate(0,-130%);animation-delay:-0.3s;}
+.loader .bar11{transform:rotate(300deg) translate(0,-130%);animation-delay:-0.2s;}
+.loader .bar12{transform:rotate(330deg) translate(0,-130%);animation-delay:-0.1s;}
+
+@media (prefers-reduced-motion:reduce){
+    .loader div{animation-duration:1.5s;}
+}
+
+/* ---------- Ambient background ---------- */
+.bg-stage{position:fixed;inset:0;overflow:hidden;z-index:0;
+    background:#04050a url("assets/background.png") center center / cover no-repeat;}
+/* subtle dark vignette so the phone reads clearly against any photo */
+.bg-stage::after{content:"";position:absolute;inset:0;
+    background:radial-gradient(120% 90% at 50% 40%,transparent 30%,rgba(4,5,10,.55) 100%);}
+.orb{position:absolute;border-radius:50%;filter:blur(90px);opacity:.22;mix-blend-mode:screen;}
+.orb-purple{width:46vw;height:46vw;background:#7c3aed;top:-12vw;right:-8vw;animation:drift1 18s ease-in-out infinite;}
+.orb-cyan{width:42vw;height:42vw;background:#0891b2;bottom:-14vw;left:-10vw;animation:drift2 22s ease-in-out infinite;}
+@keyframes drift1{50%{transform:translate(-4vw,5vw) scale(1.1)}}
+@keyframes drift2{50%{transform:translate(5vw,-4vw) scale(1.08)}}
+.grain{position:absolute;inset:0;opacity:.04;pointer-events:none;display:none;
+    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");}
+/* grain is opt-in — hidden above by default, shown via Settings (JS sets display) */
+
+/* ---------- Phone stage / 3D ---------- */
+/* padding keeps the scaled phone inside the stage box so hover doesn't flicker */
+.phone-stage{position:relative;z-index:2;perspective:1700px;padding:24px;}
+
+/* flashlight beam: soft white glow that blooms out behind the TOP of the phone.
+   Positioned high so it spills above/around the top edge instead of hiding
+   behind the opaque phone. */
+.flash-glow{position:absolute;top:-24%;left:50%;transform:translateX(-50%);
+    width:104%;height:74%;border-radius:50%;z-index:-1;pointer-events:none;
+    background:radial-gradient(closest-side, rgba(255,255,255,1), rgba(255,255,255,.72) 46%, rgba(255,255,255,0) 84%);
+    filter:blur(40px);opacity:0;
+    transition:opacity .5s ease, width .7s var(--spring), height .7s var(--spring);}
+body.flash-on .flash-glow{opacity:1;}
+.phone-stage.lift .flash-glow{width:140%;height:92%;}   /* wider when hovered */
+
+/* float layer: gentle idle bob — its own element so it never fights the zoom */
+.phone-float{
+    transform-style:preserve-3d;
+    animation:float 7s ease-in-out infinite;
+    will-change:transform;
+    pointer-events:none;
+}
+@keyframes float{50%{transform:translateY(-10px)}}
+
+/* zoom layer: smooth "come closer" on hover (slow ease, nothing else touches
+   transform here, so it glides cleanly in and out).
+   pointer-events:none so this wrapper never swallows taps meant for the apps. */
+.phone-zoom{
+    transform-style:preserve-3d;
+    transition:transform 1.4s cubic-bezier(0.16, 1, 0.3, 1);
+    will-change:transform;
+    pointer-events:none;
+}
+.phone{pointer-events:auto;}
+.phone-stage.lift .phone-zoom{
+    transform:scale(1.06) translateZ(50px);
+}
+
+.phone{
+    position:relative;
+    width:var(--phone-w);height:var(--phone-h);
+    border-radius:var(--radius);
+    background:linear-gradient(160deg,#2a2a2c,#141416);
+    padding:var(--bezel);
+    transform-style:preserve-3d;
+    /* tilt layer: responsive follow + slow, gentle shadow ease */
+    transition:transform .45s cubic-bezier(0.22,0.61,0.36,1), box-shadow 1.3s cubic-bezier(0.16, 1, 0.3, 1);
+    box-shadow:
+        0 0 0 1.5px #141416,                       /* hugs the edge so a sub-pixel
+                                                       seam shows dark frame, not the
+                                                       background, during boot */
+        0 4px 10px -4px rgba(0,0,0,.45),
+        0 0 0 2px rgba(255,255,255,.04) inset;
+    will-change:transform;
+}
+/* hover "lift off the wood" — subtle, soft black shadow that eases in slowly */
+.phone-stage.lift .phone{
+    box-shadow:
+        0 10px 18px -8px rgba(0,0,0,.4),
+        0 26px 40px -22px rgba(0,0,0,.45),
+        0 0 0 2px rgba(255,255,255,.05) inset;
+}
+.phone-edge{position:absolute;inset:5px;border-radius:calc(var(--radius) - 6px);
+    border:1px solid rgba(255,255,255,.08);pointer-events:none;z-index:6;}
+
+/* physical buttons */
+.phone::before,.phone::after{content:"";position:absolute;left:-3px;width:3px;border-radius:3px 0 0 3px;background:linear-gradient(#3a3a3c,#222);}
+.phone::before{top:150px;height:54px;box-shadow:0 76px 0 #2a2a2c,0 76px 0 0 #2a2a2c;}
+.phone::after{top:120px;height:26px;}
+
+/* ---------- Screen ---------- */
+.screen{
+    position:relative;width:100%;height:100%;
+    border-radius:calc(var(--radius) - 13px);
+    overflow:hidden;background:#000;
+    transform:translateZ(0);
+}
+.wallpaper{position:absolute;inset:0;
+    background:#0f172a url("assets/iphone-background.jpg") center center / cover no-repeat;
+    transition:filter .6s var(--spring), transform .6s var(--spring);}
+/* Lock screen = full-res sharp wallpaper. Home screen = blurred + dimmed so
+   the app icons pop, exactly like a real iPhone home screen. */
+.screen.unlocked .wallpaper{filter:blur(11px) brightness(.6);transform:scale(1.14);}
+/* Settings → Wallpaper Blur off: keep the home-screen dim but drop the blur */
+.screen.unlocked.wp-noblur .wallpaper{filter:brightness(.6);}
+.wp-orb{display:none;}
+
+/* brightness dim overlay (driven by Settings → Brightness) */
+.screen-dim{position:absolute;inset:0;background:#000;opacity:0;pointer-events:none;
+    z-index:46;border-radius:inherit;transition:opacity .12s linear;}
+
+/* airplane mode (Settings) swaps the signal+wifi icons for an airplane */
+.sb-airplane{display:none;}
+.screen.airplane .sb-airplane{display:block;}
+.screen.airplane .sb-signal,.screen.airplane .sb-wifi{display:none;}
+/* Control Center can also drop Wi-Fi / cellular independently of airplane mode */
+.screen.wifi-off .sb-wifi{display:none;}
+.screen.cell-off .sb-signal{opacity:.3;}
+
+/* dynamic island */
+.island{position:absolute;top:14px;left:50%;transform:translateX(-50%);
+    width:96px;height:28px;background:#000;border-radius:16px;z-index:30;}
+
+/* status bar */
+.statusbar{position:absolute;top:0;left:0;right:0;height:54px;z-index:25;
+    display:flex;align-items:center;justify-content:space-between;
+    padding:11px 12px 0 26px;color:#fff;font-size:13px;font-weight:600;}
+.sb-time{letter-spacing:.02em;line-height:1;transform:translateY(-2px);}
+.sb-right{display:flex;align-items:center;gap:5px;transform:translateY(-5px);}
+.sb-signal{width:15px;height:10px;}
+.sb-wifi{width:16px;height:11px;}
+.sb-batt{width:23px;height:11px;}
+
+/* ---------- Lock screen ---------- */
+.lockscreen{position:absolute;inset:0;z-index:20;
+    display:flex;flex-direction:column;align-items:center;
+    padding:66px 26px 30px;cursor:pointer;
+    transition:transform .55s var(--spring);}
+/* The container itself never drops below opacity 1 and never gets a filter —
+   either would disable the quick buttons' backdrop-filter and make the blur
+   "pop in" late. The fade is done on the children instead. */
+.screen.unlocked .lockscreen{transform:translateY(-40px) scale(.97);pointer-events:none;}
+.lock-clock{display:flex;flex-direction:column;align-items:center;color:rgba(255,255,255,.95);
+    transition:opacity .5s var(--spring);}
+.screen.unlocked .lock-clock{opacity:0;}
+.lock-date{font-size:15px;font-weight:500;letter-spacing:.02em;opacity:.85;}
+.lock-time{font-size:94px;font-weight:200;letter-spacing:-.04em;line-height:1;margin-top:2px;}
+/* ---- lock-screen notification (sits low, just above the quick buttons) ---- */
+.lock-notifs{width:calc(100% + 22px);margin:auto -11px 0;display:flex;flex-direction:column;gap:10px;
+    opacity:1;}
+/* Only animate opacity on the way OUT (unlocking). Coming back to the lock
+   screen it snaps to opacity:1 instantly, so backdrop-filter is active right
+   away instead of staying transparent until a fade finishes. */
+.screen.unlocked .lock-notifs{opacity:0;transition:opacity .12s ease;}
+.notif{border-radius:18px;perspective:650px;}
+.notif-track{position:relative;display:flex;flex-direction:column;gap:1px;padding:8px 12px 9px;color:#fff;
+    border-radius:18px;cursor:pointer;touch-action:pan-y;user-select:none;overflow:hidden;
+    /* frosted glass: real backdrop blur so it picks up the wallpaper tones
+       (colourless glass look) over a light neutral base fill. The base keeps
+       it readable even if the blur lags for a frame on the home->lock swap. */
+    background:rgba(98,102,116,.26);
+    border:1px solid rgba(255,255,255,.18);
+    backdrop-filter:blur(20px) saturate(150%);
+    -webkit-backdrop-filter:blur(20px) saturate(150%);
+    box-shadow:inset 0 1px 0 rgba(255,255,255,.18),0 4px 16px -8px rgba(0,0,0,.45);
+    transform-style:preserve-3d;will-change:transform;
+    transition:transform .35s var(--spring),opacity .28s ease,background .25s ease;}
+/* soft glare that tracks the cursor across the glass (driven by JS vars) */
+.notif-track::after{content:"";position:absolute;inset:0;border-radius:inherit;pointer-events:none;
+    opacity:0;transition:opacity .3s ease;
+    background:radial-gradient(140px 140px at var(--mx,50%) var(--my,50%),
+        rgba(255,255,255,.22),transparent 60%);}
+@media (hover:hover){ .notif-track.tilting::after{opacity:1;} }
+.notif-track.tilting{transition:transform .08s linear,background .25s ease;}
+.notif-track.dragging{transition:none;cursor:grabbing;}
+.notif-track.dragging::after{opacity:0;}
+.notif-head{display:flex;align-items:center;justify-content:space-between;gap:8px;}
+.notif-app{display:flex;align-items:center;gap:5px;
+    font-size:10px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;opacity:.62;}
+.notif-appico{flex-shrink:0;width:16px;height:16px;border-radius:5px;overflow:hidden;
+    display:flex;align-items:center;justify-content:center;transition:transform .25s var(--spring);}
+.notif-appico svg{width:11px;height:11px;}
+.notif-ico-msg{background:linear-gradient(180deg,#5bf675 0%,#1fc24b 100%);}
+.notif-time{font-size:10px;opacity:.55;flex-shrink:0;}
+.notif-sender{font-size:12.5px;font-weight:600;margin-top:1px;}
+.notif-text{font-size:11.5px;line-height:1.3;opacity:.9;margin-top:1px;}
+.lock-quick{display:flex;width:100%;justify-content:space-between;margin-top:24px;
+    transition:opacity .12s ease;}
+/* the quick buttons fade out faster than the rest of the lock screen */
+.screen.unlocked .lock-quick{opacity:0;}
+/* frosted iPhone-style glass. Safe to use backdrop-filter now that the lock
+   screen no longer animates a filter on its ancestor (which used to disable it).
+   The translucent base also keeps the circle visible if blur is unsupported. */
+.quick-btn{width:46px;height:46px;border-radius:50%;border:none;cursor:pointer;
+    /* same frosted-glass family as the notification, but darker so the circles
+       still stand out against a light/foamy wallpaper */
+    background:rgba(48,50,62,.55);
+    backdrop-filter:blur(30px) saturate(160%);-webkit-backdrop-filter:blur(30px) saturate(160%);
+    display:flex;align-items:center;justify-content:center;transition:transform .2s,background .2s;}
+.quick-btn svg{width:20px;height:20px;}
+/* no scale on hover — these buttons are pinned to the screen edges, so scaling
+   makes them look like they shift sideways. Just brighten the fill instead. */
+.quick-btn:hover{background:rgba(78,82,96,.6);}
+.quick-btn:active{transform:scale(.94);}
+/* flashlight ON: invert colors so it looks activated */
+.quick-btn.active{background:#fff;}
+.quick-btn.active svg{stroke:#111;}
+
+/* ---------- Home screen ---------- */
+.homescreen{position:absolute;inset:0;z-index:15;
+    display:flex;flex-direction:column;align-items:center;
+    padding:74px 18px 16px;
+    opacity:0;transform:scale(1.06);pointer-events:none;
+    transition:opacity .5s var(--spring), transform .5s var(--spring);}
+.screen.unlocked .homescreen{opacity:1;transform:scale(1);pointer-events:auto;}
+.screen.app-open .homescreen{opacity:0;transform:scale(.92);pointer-events:none;}
+
+/* ---- swipeable pages ---- */
+/* No clipping here: the rounded .screen already clips at its edge, and the
+   off-screen page sits ~18px beyond that edge, so it stays hidden. Leaving the
+   viewport overflow VISIBLE means icon drop-shadows and the hover "pop" are
+   never sliced at a page boundary. The 36px gap separates the two pages. */
+.pages-viewport{flex:1;align-self:stretch;overflow:visible;touch-action:pan-y;}
+.pages-track{display:flex;gap:36px;height:100%;
+    transform:translate3d(0,0,0);
+    transition:transform .42s var(--spring);will-change:transform;}
+.pages-track.dragging{transition:none;}
+/* promote each page to its own compositing layer so the icons (and their
+   drop-shadows) translate as one pre-rendered unit during a flick — otherwise
+   mobile re-rasterizes each icon's filter mid-animation and briefly paints its
+   hard rectangular filter region as a square box around every icon */
+.page{flex:0 0 100%;width:100%;height:100%;
+    transform:translateZ(0);will-change:transform;
+    backface-visibility:hidden;-webkit-backface-visibility:hidden;}
+
+/* 1fr columns fill the padded width exactly — no overflow past the edges */
+.app-grid{display:grid;grid-template-columns:repeat(4,1fr);
+    column-gap:16px;row-gap:18px;align-content:start;width:100%;}
+.app{background:none;border:none;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:7px;padding:0;min-width:0;font:inherit;}
+/* real iOS app-icon images (transparent PNGs) at natural size + soft shadow */
+.app-icon{position:relative;width:48px;height:48px;
+    transition:transform .25s var(--spring);}
+.app-icon img{display:block;width:100%;height:100%;object-fit:contain;
+    filter:drop-shadow(0 5px 7px rgba(0,0,0,.45));
+    /* give the drop-shadow its own GPU layer so iOS Safari doesn't paint the
+       filter's rectangular buffer as a faint box over the translucent dock */
+    transform:translateZ(0);-webkit-backface-visibility:hidden;backface-visibility:hidden;}
+.app:hover .app-icon,.app:focus-visible .app-icon{transform:scale(1.12) translateY(-2px);}
+.app:active .app-icon{transform:scale(.92);}
+.app-label{font-family:inherit;font-size:9.5px;font-weight:400;letter-spacing:.01em;color:rgba(255,255,255,.9);text-shadow:0 1px 3px rgba(0,0,0,.5);-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;}
+
+/* the App Store PNG has built-in transparent padding, so it renders a touch
+   smaller than the others — scale it up to match their visual size */
+.app-store .app-icon img{transform:scale(1.1) translateZ(0);}
+
+/* filler apps have no real app behind them, but still get the hover "pop"
+   so every icon on the grid feels alike */
+.app-deco{cursor:pointer;}
+
+/* page dots (between the pages and the dock, like real iOS) */
+/* sit in a centered frosted pill, matching the dock's material */
+.page-dots{display:flex;justify-content:center;align-items:center;gap:7px;
+    align-self:center;margin:6px auto 0;flex-shrink:0;
+    padding:5px 9px;border-radius:16px;
+    /* static frosted fill — NOT backdrop-filter. The wallpaper behind is
+       already blurred and never moves, so a live blur added nothing but the
+       Chromium nested-filter lag; a fixed translucent fill looks identical
+       and can never re-render late on app exit. */
+    background:rgba(236,240,255,.14);
+    box-shadow:0 0 0 .5px rgba(255,255,255,.1) inset;}
+.page-dot{width:6px;height:6px;border-radius:50%;border:none;padding:0;cursor:pointer;
+    background:rgba(255,255,255,.32);
+    box-shadow:0 1px 2px rgba(0,0,0,.35);
+    transition:background .25s,transform .25s;}
+.page-dot.is-active{background:rgba(255,255,255,.95);}
+.page-dot:hover{transform:scale(1.25);}
+
+/* dock: full-width pill, same 4 columns + gap as the grid so icons align */
+/* wider than the grid: extend past the home-screen padding toward the edges */
+.dock{margin:16px -8px 0;padding:11px 0;border-radius:30px;
+    /* static frosted fill (see .page-dots) — no backdrop-filter, so it can't
+       lag behind on app exit */
+    background:rgba(236,240,255,.14);
+    display:flex;width:calc(100% + 16px);
+    justify-content:space-evenly;align-items:center;
+    box-shadow:0 0 0 .5px rgba(255,255,255,.1) inset;}
+.dock-app{display:flex;justify-content:center;}
+.dock-app .app-label{display:none;}
+.dock-app .app-icon{width:48px;height:48px;}
+
+/* ---------- App view (camera-follow open) ---------- */
+/* above the lock screen (z20) so apps can open from it (e.g. lock-screen
+   camera), but still below the status bar (z25), island (z30) & home bar (z40) */
+.appview{position:absolute;inset:0;z-index:22;background:#0b0d18;
+    display:flex;flex-direction:column;
+    opacity:0;pointer-events:none;visibility:hidden;
+    transform:scale(.2);transform-origin:50% 50%;
+    /* The app view is opaque, so while it animates Chromium's occlusion culling
+       would stop painting the frosted dock / page dots / status bar behind it
+       and only re-raster them when the animation ends — making their blur
+       "pop in" a second late. Declaring will-change tells the browser this
+       layer may become transparent, which disables that culling so the glass
+       stays painted (and correctly blurred) throughout the transition. */
+    will-change:opacity,transform;
+    /* visibility flips to hidden only AFTER the fade finishes, so the closed
+       app view's GPU layer is fully dropped — that invalidates the region and
+       forces the frosted glass behind it (status bar / dock / page dots) to
+       re-sample the wallpaper immediately instead of a second later */
+    transition:opacity .42s var(--spring), transform .46s var(--spring), visibility 0s linear .46s;}
+.screen.app-open .appview{opacity:1;transform:scale(1);pointer-events:auto;visibility:visible;
+    transition:opacity .42s var(--spring), transform .46s var(--spring), visibility 0s linear 0s;}
+.appview-header{position:relative;flex-shrink:0;height:96px;
+    display:flex;align-items:flex-end;gap:8px;padding:0 16px 12px;
+    background:linear-gradient(180deg,rgba(11,13,24,.96),rgba(11,13,24,.7));
+    backdrop-filter:blur(12px);border-bottom:1px solid rgba(255,255,255,.07);z-index:5;}
+.appview-back{background:none;border:none;cursor:pointer;color:#0a84ff;
+    display:flex;align-items:center;padding:0;}
+.appview-back svg{width:24px;height:24px;}
+.appview-title{font-size:22px;font-weight:700;letter-spacing:-.01em;}
+.appview-body{flex:1;overflow-y:auto;padding:18px 18px 30px;
+    -webkit-overflow-scrolling:touch;}
+.appview-body::-webkit-scrollbar{width:0;}
+
+/* home indicator — also the universal "close app" affordance */
+.home-indicator{position:absolute;bottom:8px;left:50%;transform:translateX(-50%) translateZ(0);
+    width:120px;height:5px;border-radius:3px;border:none;cursor:pointer;z-index:40;
+    background:rgba(255,255,255,.55);transition:background .2s,width .2s,opacity .25s ease;
+    will-change:opacity;touch-action:none;}
+.home-indicator:hover{background:rgba(255,255,255,.85);}
+/* generous invisible hit area so the thin bar is easy to tap / grab */
+.home-indicator::before{content:"";position:absolute;left:-50px;right:-50px;top:-18px;bottom:-12px;}
+/* hidden on the home screen, but shown again while an app is open so it can close it */
+.screen.unlocked .home-indicator{opacity:0;pointer-events:none;}
+.screen.app-open .home-indicator{opacity:1;pointer-events:auto;}
+
+/* ============================================================
+   App content
+   ============================================================ */
+.appview-body h2{font-size:24px;font-weight:700;}
+.appview-body h3{font-size:15px;font-weight:600;}
+.appview-body p{font-size:14px;line-height:1.55;color:rgba(255,255,255,.7);}
+
+/* About */
+.v-about{display:flex;flex-direction:column;align-items:center;text-align:center;gap:6px;padding-top:8px;}
+.about-photo{width:104px;height:104px;border-radius:28px;overflow:hidden;
+    box-shadow:0 10px 30px -8px rgba(0,0,0,.6),0 0 0 3px rgba(255,255,255,.1);}
+.about-photo img{width:100%;height:100%;object-fit:cover;}
+.about-name{margin-top:10px;}
+.about-role{font-size:13px;color:#8b9cff;font-weight:500;}
+.about-bio{margin-top:10px;text-align:left;}
+.about-links{display:flex;gap:10px;margin-top:18px;flex-wrap:wrap;justify-content:center;}
+.pill-link{font-size:13px;font-weight:500;color:#fff;text-decoration:none;
+    padding:9px 18px;border-radius:999px;background:rgba(255,255,255,.1);
+    border:1px solid rgba(255,255,255,.12);transition:background .2s,transform .2s;}
+.pill-link:hover{background:rgba(124,58,237,.4);transform:translateY(-2px);}
+
+/* Skills */
+.v-skills{display:flex;flex-direction:column;gap:14px;}
+.skill-row{display:flex;align-items:center;gap:14px;}
+.skill-chip{flex-shrink:0;width:46px;height:46px;border-radius:13px;
+    background:rgba(255,255,255,.92);
+    display:flex;align-items:center;justify-content:center;
+    box-shadow:0 4px 12px -3px rgba(0,0,0,.5);}
+.skill-chip img{width:30px;height:30px;object-fit:contain;display:block;}
+.skill-row h3{margin-bottom:2px;}
+.skill-row p{font-size:12.5px;line-height:1.4;}
+
+/* Experience */
+.v-experience{display:flex;flex-direction:column;gap:16px;}
+.exp-item{display:flex;gap:14px;padding:14px;border-radius:18px;
+    background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.07);}
+.exp-logo{flex-shrink:0;width:44px;height:44px;border-radius:12px;overflow:hidden;background:#fff;}
+.exp-logo img{width:100%;height:100%;object-fit:cover;}
+.exp-top{display:flex;align-items:flex-start;justify-content:space-between;gap:8px;}
+.exp-info h3{font-size:14px;line-height:1.25;}
+.exp-company{font-size:13px;color:#8b9cff;font-weight:500;margin-top:3px;}
+.exp-meta{font-size:11.5px;color:rgba(255,255,255,.5);margin-top:3px;}
+.badge{flex-shrink:0;font-size:10px;font-weight:600;padding:3px 8px;border-radius:999px;
+    background:rgba(96,165,250,.2);color:#93c5fd;white-space:nowrap;}
+.badge-amber{background:rgba(251,191,36,.2);color:#fcd34d;}
+.badge-green{background:rgba(52,211,153,.2);color:#6ee7b7;}
+
+/* Projects */
+.v-projects{display:flex;flex-direction:column;gap:14px;}
+.proj-note{font-size:11.5px;color:rgba(255,255,255,.45);margin-bottom:2px;}
+.proj-note code{background:rgba(255,255,255,.08);padding:1px 5px;border-radius:5px;font-size:11px;}
+.proj-card{display:block;text-decoration:none;color:inherit;padding:16px;border-radius:18px;
+    background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.08);
+    transition:background .2s,transform .2s,border-color .2s;}
+.proj-card:hover{background:rgba(251,146,60,.12);border-color:rgba(251,146,60,.4);transform:translateY(-3px);}
+.proj-card h3{margin-bottom:5px;}
+.proj-tags{display:inline-block;margin-top:10px;font-size:11px;color:#fb923c;font-weight:500;}
+
+/* Phone */
+.v-phone{display:flex;flex-direction:column;align-items:center;text-align:center;gap:6px;padding-top:24px;}
+.call-avatar{width:96px;height:96px;border-radius:50%;display:flex;align-items:center;justify-content:center;
+    font-size:34px;font-weight:600;background:linear-gradient(150deg,#4ade80,#16a34a);
+    box-shadow:0 12px 30px -8px rgba(22,163,74,.5);}
+.call-name{margin-top:14px;}
+.call-number{font-size:20px;font-weight:300;letter-spacing:.02em;margin-top:4px;}
+.call-sub{font-size:12px;color:rgba(255,255,255,.45);}
+.call-actions{display:flex;gap:40px;margin-top:34px;}
+.call-btn{width:62px;height:62px;border-radius:50%;display:flex;align-items:center;justify-content:center;color:#fff;
+    transition:transform .2s;text-decoration:none;}
+.call-btn svg{width:28px;height:28px;}
+.call-btn:hover{transform:scale(1.08);}
+.call-green{background:#16a34a;box-shadow:0 10px 24px -6px rgba(22,163,74,.6);}
+.call-blue{background:#0a84ff;box-shadow:0 10px 24px -6px rgba(10,132,255,.6);}
+
+/* Mail — contact hub */
+.v-mail{display:flex;flex-direction:column;align-items:center;text-align:center;padding-top:14px;}
+.mail-glyph{width:78px;height:78px;border-radius:22px;display:flex;align-items:center;justify-content:center;color:#fff;
+    background:linear-gradient(150deg,#38bdf8,#0284c7);box-shadow:0 14px 34px -10px rgba(2,132,199,.7);}
+.mail-glyph svg{width:38px;height:38px;}
+.mail-title{margin-top:16px;font-size:24px;font-weight:700;}
+.mail-sub{margin-top:6px;font-size:13.5px;line-height:1.5;color:rgba(255,255,255,.6);max-width:248px;}
+
+.mail-list{width:100%;margin-top:24px;display:flex;flex-direction:column;gap:10px;}
+.mail-item{display:flex;align-items:center;gap:13px;text-align:left;text-decoration:none;color:#fff;
+    padding:11px 13px;border-radius:16px;background:rgba(255,255,255,.06);
+    border:1px solid rgba(255,255,255,.08);
+    transition:background .2s,transform .2s,border-color .2s;}
+.mail-item:hover{background:rgba(255,255,255,.1);border-color:rgba(255,255,255,.18);transform:translateY(-1px);}
+.mail-item-ico{flex-shrink:0;width:40px;height:40px;border-radius:12px;
+    display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:15px;}
+.mail-item-ico svg{width:21px;height:21px;}
+.mail-ico-mail{background:linear-gradient(150deg,#38bdf8,#0284c7);}
+.mail-ico-li{background:#0a66c2;}
+.mail-ico-gh{background:#24292e;}
+.mail-item-body{display:flex;flex-direction:column;min-width:0;flex:1;gap:1px;}
+.mail-item-label{font-size:10.5px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;color:rgba(255,255,255,.42);}
+.mail-item-value{font-size:14px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.mail-item-arrow{width:16px;height:16px;flex-shrink:0;color:rgba(255,255,255,.3);}
+
+.mail-cta{margin-top:22px;width:100%;text-align:center;font-size:15px;font-weight:600;color:#fff;text-decoration:none;
+    padding:15px 26px;border-radius:16px;background:linear-gradient(120deg,#7c3aed,#0891b2);
+    box-shadow:0 14px 30px -10px rgba(124,58,237,.6);transition:transform .2s,box-shadow .2s;}
+.mail-cta:hover{transform:translateY(-2px);box-shadow:0 18px 38px -10px rgba(124,58,237,.7);}
+
+/* ============================================================
+   Edge-to-edge native apps (Calculator / Clock / Maps)
+   ============================================================ */
+/* these apps run truly full-bleed: no header at all, so the app's own
+   background fills up behind the status bar / island (no dark band). Each
+   app adds its own top padding so its content clears the status bar. */
+.appview.flush .appview-header{display:none;}
+.appview.flush .appview-body{padding:0;overflow:hidden;}
+
+/* ---- Calculator ---- */
+.v-calc{height:100%;display:flex;flex-direction:column;padding:0 14px 26px;}
+.calc-display{flex:1;display:flex;flex-direction:column;justify-content:flex-end;align-items:flex-end;
+    text-align:right;padding:8px 6px 16px;min-height:96px;gap:6px;overflow:hidden;}
+.calc-expr{font-size:17px;font-weight:300;color:rgba(255,255,255,.5);min-height:21px;
+    white-space:nowrap;overflow:hidden;max-width:100%;}
+.calc-result{font-size:58px;font-weight:300;line-height:1;letter-spacing:-.02em;white-space:nowrap;}
+.calc-keys{display:grid;grid-template-columns:repeat(4,1fr);gap:11px;}
+.ckey{aspect-ratio:1;border:none;border-radius:50%;font-size:25px;font-weight:400;color:#fff;cursor:pointer;
+    background:#333;display:flex;align-items:center;justify-content:center;font-family:inherit;
+    transition:filter .15s,transform .08s;-webkit-tap-highlight-color:transparent;}
+.ckey:hover{filter:brightness(1.18);}
+.ckey:active{transform:scale(.93);}
+.ckey-fn{background:#a5a5a5;color:#000;font-weight:500;font-size:22px;}
+.ckey-op{background:#ff9f0a;font-size:30px;}
+.ckey-op.is-active{background:#fff;color:#ff9f0a;}
+
+/* ---- Clock ---- */
+.v-clock{height:100%;display:flex;flex-direction:column;}
+.clock-stack{flex:1;position:relative;overflow:hidden;}
+.clk-view{position:absolute;inset:0;overflow-y:auto;padding:58px 18px 16px;display:none;}
+.clk-view::-webkit-scrollbar{width:0;}
+.clk-view.is-active{display:block;}
+.clk-view.clk-center.is-active{display:flex;flex-direction:column;align-items:center;padding-top:62px;}
+.clk-title{font-size:30px;font-weight:700;margin-bottom:4px;letter-spacing:-.01em;}
+.wc-list,.al-list{list-style:none;}
+.wc-row{display:flex;justify-content:space-between;align-items:flex-end;padding:13px 0;
+    border-bottom:1px solid rgba(255,255,255,.08);}
+.wc-meta{display:flex;flex-direction:column;gap:2px;}
+.wc-day{font-size:12px;color:rgba(255,255,255,.5);}
+.wc-city{font-size:21px;font-weight:400;}
+.wc-clock{font-weight:200;display:flex;align-items:baseline;}
+.wc-h{font-size:38px;letter-spacing:-.02em;font-variant-numeric:tabular-nums;}
+.wc-ap{font-size:14px;margin-left:4px;color:rgba(255,255,255,.85);}
+
+/* alarms */
+.al-row{display:flex;justify-content:space-between;align-items:center;padding:13px 0;
+    border-bottom:1px solid rgba(255,255,255,.08);}
+.al-off .al-meta{opacity:.4;}
+.al-time{font-size:33px;font-weight:200;}
+.al-time small{font-size:17px;margin-left:3px;font-weight:300;}
+.al-label{display:block;font-size:13px;color:rgba(255,255,255,.55);margin-top:-2px;}
+.al-switch{width:51px;height:31px;border-radius:999px;background:rgba(255,255,255,.18);border:none;
+    cursor:pointer;position:relative;transition:background .25s;flex-shrink:0;}
+.al-switch.on{background:#34c759;}
+.al-switch span{position:absolute;top:2px;left:2px;width:27px;height:27px;border-radius:50%;background:#fff;
+    transition:transform .25s var(--spring);box-shadow:0 2px 5px rgba(0,0,0,.3);}
+.al-switch.on span{transform:translateX(20px);}
+
+/* stopwatch + timer shared */
+.sw-time,.tm-time{font-size:50px;font-weight:200;font-variant-numeric:tabular-nums;
+    letter-spacing:.01em;margin:14px 0 28px;}
+.tm-time.tm-done{color:#ff9f0a;}
+.sw-controls{display:flex;justify-content:space-between;width:100%;max-width:300px;}
+.sw-btn{width:82px;height:82px;border-radius:50%;border:none;cursor:pointer;font-size:17px;color:#fff;
+    font-family:inherit;display:flex;align-items:center;justify-content:center;
+    transition:filter .15s,transform .08s;}
+.sw-btn:hover{filter:brightness(1.15);}
+.sw-btn:active{transform:scale(.94);}
+.sw-lap{background:rgba(255,255,255,.16);}
+.sw-lap:disabled{opacity:.4;cursor:default;}
+.sw-go{background:rgba(48,209,88,.26);color:#30d158;}
+.sw-go.sw-stop{background:rgba(255,69,58,.26);color:#ff453a;}
+.sw-laps{list-style:none;width:100%;max-width:320px;margin-top:22px;}
+.swlap-row{display:flex;justify-content:space-between;padding:11px 4px;
+    border-bottom:1px solid rgba(255,255,255,.08);font-variant-numeric:tabular-nums;color:rgba(255,255,255,.85);}
+.tm-presets{display:flex;gap:10px;flex-wrap:wrap;justify-content:center;margin-bottom:26px;}
+.tm-preset{padding:9px 16px;border-radius:999px;border:1px solid rgba(255,255,255,.16);
+    background:rgba(255,255,255,.06);color:#fff;cursor:pointer;font-size:15px;font-family:inherit;
+    transition:background .15s,border-color .15s;}
+.tm-preset.is-active{background:#ff9f0a;border-color:#ff9f0a;color:#000;font-weight:600;}
+
+/* clock bottom tab bar */
+.clock-tabs{flex-shrink:0;display:flex;padding:0 10px;border-top:1px solid rgba(255,255,255,.1);
+    background:rgba(20,20,22,.55);backdrop-filter:blur(12px);}
+.clk-tab{flex:1;background:none;border:none;cursor:pointer;color:rgba(255,255,255,.5);font-family:inherit;
+    display:flex;flex-direction:column;align-items:center;gap:3px;padding:9px 2px 26px;font-size:10px;
+    transition:color .15s;}
+.clk-tab svg{width:22px;height:22px;}
+.clk-tab.is-active{color:#ff9f0a;}
+
+/* ---- Maps ---- */
+.v-maps{height:100%;position:relative;overflow:hidden;background:#1a2430;}
+.map-canvas{position:absolute;inset:0;background:linear-gradient(180deg,#243243,#19222e);}
+.map-roads{position:absolute;inset:-25%;background-image:
+    repeating-linear-gradient(35deg,  transparent 0 40px, rgba(255,255,255,.07) 40px 43px),
+    repeating-linear-gradient(125deg, transparent 0 54px, rgba(255,255,255,.05) 54px 57px),
+    repeating-linear-gradient(35deg,  transparent 0 120px, rgba(255,255,255,.1) 120px 125px);}
+.map-park{position:absolute;width:58%;height:36%;left:-10%;bottom:6%;
+    border-radius:45% 55% 50% 50%;background:rgba(52,140,90,.32);filter:blur(3px);}
+.map-water{position:absolute;width:48%;height:42%;right:-12%;top:-8%;
+    border-radius:50% 45% 55% 50%;background:rgba(40,95,155,.4);filter:blur(3px);}
+.map-pin{position:absolute;top:46%;left:50%;transform:translate(-50%,-50%);}
+.map-pin-dot{display:block;width:20px;height:20px;border-radius:50%;background:#0a84ff;border:3px solid #fff;
+    box-shadow:0 0 0 1px rgba(0,0,0,.3),0 6px 16px rgba(10,132,255,.7);position:relative;z-index:2;}
+.map-pin-pulse{position:absolute;top:50%;left:50%;width:20px;height:20px;border-radius:50%;
+    background:rgba(10,132,255,.45);transform:translate(-50%,-50%);animation:mapPulse 2.2s ease-out infinite;}
+@keyframes mapPulse{0%{opacity:.6;transform:translate(-50%,-50%) scale(1);}100%{opacity:0;transform:translate(-50%,-50%) scale(5);}}
+.map-search{position:absolute;top:60px;left:12px;right:12px;display:flex;align-items:center;gap:8px;
+    padding:11px 14px;border-radius:14px;background:rgba(28,28,30,.8);backdrop-filter:blur(14px);
+    color:#fff;font-size:14px;font-weight:500;box-shadow:0 4px 16px rgba(0,0,0,.35);}
+.map-search svg{width:16px;height:16px;color:rgba(255,255,255,.6);flex-shrink:0;}
+.map-card{position:absolute;bottom:24px;left:12px;right:12px;display:flex;align-items:center;
+    justify-content:space-between;padding:16px 18px;border-radius:18px;
+    background:rgba(28,28,30,.85);backdrop-filter:blur(14px);box-shadow:0 12px 32px rgba(0,0,0,.45);}
+.map-card h3{font-size:20px;font-weight:700;}
+.map-card p{font-size:13px;color:rgba(255,255,255,.6);margin-top:2px;}
+.map-dir{width:46px;height:46px;border-radius:50%;background:#0a84ff;display:flex;align-items:center;
+    justify-content:center;color:#fff;text-decoration:none;flex-shrink:0;transition:transform .15s;}
+.map-dir:hover{transform:scale(1.06);}
+.map-dir svg{width:20px;height:20px;}
+
+/* ---- Camera ---- */
+.v-camera{position:absolute;inset:0;background:#000;overflow:hidden;}
+.cam-video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;background:#000;
+    transition:transform .25s var(--spring);}
+.cam-video.cam-mirror{transform:scaleX(-1);}
+.cam-shot{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;background:#000;z-index:6;}
+.cam-flash-screen{position:absolute;inset:0;background:#fff;opacity:0;pointer-events:none;z-index:8;}
+.v-camera.cam-flash .cam-flash-screen{animation:camFlash .2s ease-out;}
+@keyframes camFlash{0%{opacity:.9;}100%{opacity:0;}}
+.cam-error{position:absolute;inset:0;z-index:6;display:flex;flex-direction:column;align-items:center;
+    justify-content:center;gap:12px;text-align:center;padding:0 34px;color:#fff;}
+.cam-error[hidden]{display:none;}   /* the display:flex above must not defeat the hidden attribute */
+.cam-error svg{width:42px;height:42px;color:rgba(255,255,255,.5);}
+.cam-error p{font-size:16px;font-weight:500;color:rgba(255,255,255,.75);}
+.cam-ui{position:absolute;left:0;right:0;bottom:0;z-index:7;padding-bottom:30px;
+    background:linear-gradient(180deg,transparent,rgba(0,0,0,.35));}
+.cam-modes{display:flex;justify-content:center;margin-bottom:18px;}
+.cam-mode{color:#ffd60a;font-size:12px;font-weight:700;letter-spacing:.14em;}
+.cam-controls{display:flex;align-items:center;justify-content:space-between;padding:0 30px;}
+.cam-shutter{width:68px;height:68px;border-radius:50%;background:transparent;cursor:pointer;padding:0;
+    border:4px solid #fff;display:flex;align-items:center;justify-content:center;transition:transform .1s;}
+.cam-shutter span{width:54px;height:54px;border-radius:50%;background:#fff;transition:transform .1s;}
+.cam-shutter:active span{transform:scale(.88);}
+.cam-thumb{width:48px;height:48px;border-radius:11px;cursor:pointer;
+    border:2px solid rgba(255,255,255,.55);background:rgba(255,255,255,.08) center/cover no-repeat;
+    transition:transform .15s;}
+.cam-thumb.has-shot:hover{transform:scale(1.05);}
+.cam-flip{width:48px;height:48px;border-radius:50%;border:none;cursor:pointer;color:#fff;
+    background:rgba(60,60,67,.55);backdrop-filter:blur(6px);display:flex;align-items:center;justify-content:center;
+    transition:transform .2s,background .2s;}
+.cam-flip:hover{background:rgba(80,80,87,.7);transform:rotate(-25deg);}
+.cam-flip svg{width:24px;height:24px;}
+
+/* ---- Weather ---- */
+.v-weather{height:100%;overflow-y:auto;padding:64px 16px 28px;
+    background:linear-gradient(180deg,#2b5a8c,#19324f);}
+.v-weather[data-day="0"]{background:linear-gradient(180deg,#1b2740,#0c1322);}
+.v-weather::-webkit-scrollbar{width:0;}
+.wx-current{text-align:center;padding:12px 0 16px;}
+.wx-city{font-size:30px;font-weight:500;}
+.wx-temp{font-size:80px;font-weight:200;line-height:1.05;letter-spacing:-.03em;}
+.wx-cond{font-size:18px;color:rgba(255,255,255,.85);margin-top:-4px;}
+.wx-hl{font-size:17px;font-weight:500;margin-top:4px;display:flex;gap:14px;justify-content:center;}
+.wx-card{background:rgba(255,255,255,.12);backdrop-filter:blur(12px);border-radius:16px;
+    border:1px solid rgba(255,255,255,.12);margin-top:14px;overflow:hidden;}
+.wx-card-head{font-size:12px;font-weight:600;letter-spacing:.04em;color:rgba(255,255,255,.6);
+    text-transform:uppercase;padding:12px 14px 9px;border-bottom:1px solid rgba(255,255,255,.1);}
+.wx-hourly{display:flex;gap:18px;overflow-x:auto;padding:12px 14px 14px;}
+.wx-hourly::-webkit-scrollbar{height:0;}
+.wx-h{display:flex;flex-direction:column;align-items:center;gap:8px;flex-shrink:0;}
+.wx-h-t{font-size:13px;color:rgba(255,255,255,.8);}
+.wx-h-i{font-size:22px;}
+.wx-h-d{font-size:17px;font-weight:600;}
+.wx-daily{padding:4px 14px 8px;}
+.wx-d{display:flex;align-items:center;gap:11px;padding:9px 0;border-bottom:1px solid rgba(255,255,255,.08);}
+.wx-d:last-child{border-bottom:none;}
+.wx-d-day{width:40px;font-size:15px;font-weight:500;}
+.wx-d-i{width:24px;text-align:center;font-size:18px;}
+.wx-d-lo{width:30px;text-align:right;color:rgba(255,255,255,.55);font-size:15px;}
+.wx-d-track{flex:1;height:5px;border-radius:3px;background:rgba(255,255,255,.18);position:relative;}
+.wx-d-range{position:absolute;top:0;height:100%;border-radius:3px;background:linear-gradient(90deg,#7dd3fc,#fcd34d);}
+.wx-d-hi{width:30px;text-align:right;font-size:15px;font-weight:500;}
+
+/* ---- Music ---- */
+.v-music{height:100%;display:flex;flex-direction:column;overflow:hidden;
+    background:linear-gradient(180deg,#2a2433,#141019);}
+.mu-now{padding:62px 22px 16px;display:flex;flex-direction:column;align-items:center;flex-shrink:0;}
+.mu-art{width:140px;height:140px;border-radius:14px;box-shadow:0 18px 42px -12px rgba(0,0,0,.75);margin-bottom:15px;}
+.mu-meta{text-align:center;width:100%;}
+.mu-title{font-size:20px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.mu-artist{font-size:15px;color:rgba(255,255,255,.6);margin-top:2px;}
+.mu-scrub{width:100%;margin-top:15px;}
+.mu-bar{position:relative;height:6px;border-radius:3px;background:rgba(255,255,255,.18);cursor:pointer;touch-action:none;}
+.mu-fill{position:absolute;left:0;top:0;height:100%;border-radius:3px;background:rgba(255,255,255,.85);width:0;}
+.mu-knob{position:absolute;top:50%;width:13px;height:13px;border-radius:50%;background:#fff;
+    transform:translate(-50%,-50%);left:0;box-shadow:0 1px 4px rgba(0,0,0,.5);}
+.mu-times{display:flex;justify-content:space-between;font-size:11px;color:rgba(255,255,255,.5);
+    margin-top:7px;font-variant-numeric:tabular-nums;}
+.mu-controls{display:flex;align-items:center;justify-content:space-between;width:100%;max-width:296px;margin-top:12px;}
+.mu-ctl{background:none;border:none;color:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;
+    padding:6px;transition:transform .1s,color .15s;}
+.mu-ctl:active{transform:scale(.9);}
+.mu-ctl svg{width:24px;height:24px;}
+.mu-ctl.is-on{color:#c4b5fd;}
+.mu-play svg{width:42px;height:42px;}
+.mu-lib{flex:1;overflow-y:auto;background:rgba(0,0,0,.25);border-top:1px solid rgba(255,255,255,.08);padding:0 16px 26px;}
+.mu-lib::-webkit-scrollbar{width:0;}
+.mu-lib-head{font-size:12px;font-weight:700;letter-spacing:.03em;color:rgba(255,255,255,.55);
+    text-transform:uppercase;padding:13px 2px 8px;position:sticky;top:0;
+    background:linear-gradient(180deg,#191420,rgba(25,20,32,0));}
+.mu-list{list-style:none;}
+.mu-row{display:flex;align-items:center;gap:12px;padding:8px 4px;border-radius:10px;cursor:pointer;transition:background .15s;}
+.mu-row:hover{background:rgba(255,255,255,.06);}
+.mu-row.is-current .mu-row-title{color:#c4b5fd;}
+.mu-row-art{width:44px;height:44px;border-radius:8px;flex-shrink:0;box-shadow:0 4px 10px rgba(0,0,0,.45);}
+.mu-row-meta{flex:1;min-width:0;display:flex;flex-direction:column;}
+.mu-row-title{font-size:15px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.mu-row-artist{font-size:13px;color:rgba(255,255,255,.55);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.mu-row-state{font-size:12px;color:rgba(255,255,255,.45);font-variant-numeric:tabular-nums;flex-shrink:0;}
+.mu-eq{display:inline-flex;align-items:flex-end;gap:2px;height:14px;}
+.mu-eq i{width:3px;background:#c4b5fd;border-radius:1px;transform-origin:bottom;animation:muEq .85s ease-in-out infinite;}
+.mu-eq i:nth-child(1){height:7px;animation-delay:-.2s;}
+.mu-eq i:nth-child(2){height:13px;animation-delay:-.5s;}
+.mu-eq i:nth-child(3){height:9px;}
+@keyframes muEq{0%,100%{transform:scaleY(.35);}50%{transform:scaleY(1);}}
+
+/* ---- App Store ---- */
+.v-store{height:100%;display:flex;flex-direction:column;background:#000;overflow:hidden;}
+.store-scroll{flex:1;overflow-y:auto;padding:58px 18px 20px;}
+.store-scroll::-webkit-scrollbar{width:0;}
+.store-head{border-bottom:1px solid rgba(255,255,255,.1);padding-bottom:12px;margin-bottom:18px;}
+.store-day{font-size:12px;font-weight:700;letter-spacing:.05em;color:rgba(255,255,255,.5);}
+.store-head h1{font-size:32px;font-weight:800;letter-spacing:-.02em;margin-top:2px;}
+.store-feature{display:block;color:#fff;border-radius:18px;overflow:hidden;cursor:pointer;
+    background:linear-gradient(160deg,#1e3a8a,#0c1631);padding:18px;margin-bottom:24px;
+    box-shadow:0 16px 36px -14px rgba(0,0,0,.8);transition:transform .15s;}
+.store-feature:hover{transform:translateY(-2px);}
+.store-feature-tag{font-size:11px;font-weight:700;letter-spacing:.12em;color:#7dd3fc;}
+.store-feature h2{font-size:24px;font-weight:800;margin-top:4px;}
+.store-feature p{font-size:13.5px;color:rgba(255,255,255,.72);margin-top:6px;line-height:1.45;}
+.store-feature-cta{display:flex;align-items:center;gap:12px;margin-top:16px;
+    background:rgba(255,255,255,.1);border-radius:14px;padding:10px 12px;}
+.store-feature-cta img{width:44px;height:44px;border-radius:10px;flex-shrink:0;}
+.sf-meta{flex:1;display:flex;flex-direction:column;min-width:0;}
+.sf-meta b{font-size:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.sf-meta span{font-size:12px;color:rgba(255,255,255,.65);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.store-section{margin-bottom:22px;}
+.store-section h3{font-size:20px;font-weight:700;margin-bottom:8px;}
+.store-list{list-style:none;}
+.store-row{display:flex;align-items:center;gap:12px;padding:9px 0;cursor:pointer;
+    border-bottom:1px solid rgba(255,255,255,.08);}
+.store-row:last-child{border-bottom:none;}
+.store-ico{width:52px;height:52px;border-radius:12px;flex-shrink:0;box-shadow:0 4px 10px rgba(0,0,0,.4);}
+.store-row-meta{flex:1;min-width:0;display:flex;flex-direction:column;}
+.store-row-meta b{font-size:15px;font-weight:500;}
+.store-row-meta span{font-size:12.5px;color:rgba(255,255,255,.55);
+    white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.store-get{flex-shrink:0;border:none;cursor:pointer;background:rgba(120,120,128,.32);color:#0a84ff;
+    font-weight:700;font-size:14px;font-family:inherit;padding:6px 18px;border-radius:999px;
+    transition:filter .15s,transform .1s;}
+.store-get:hover{filter:brightness(1.25);}
+.store-get:active{transform:scale(.93);}
+.store-tabs{flex-shrink:0;display:flex;border-top:1px solid rgba(255,255,255,.1);
+    background:rgba(20,20,22,.6);backdrop-filter:blur(12px);}
+.store-tab{flex:1;background:none;border:none;cursor:pointer;color:rgba(255,255,255,.5);font-family:inherit;
+    display:flex;flex-direction:column;align-items:center;gap:3px;padding:8px 2px 20px;font-size:10px;font-weight:600;}
+.store-tab svg{width:22px;height:22px;}
+.store-tab.is-active{color:#0a84ff;}
+
+/* ---- Notes ---- */
+.v-notes{height:100%;position:relative;background:#1c1c1e;overflow:hidden;}
+.notes-list-view,.notes-editor{position:absolute;inset:0;display:flex;flex-direction:column;}
+/* the class display:flex above out-specifies the [hidden] attribute, so each
+   view needs its own [hidden] rule or both render stacked on top of each other */
+.notes-list-view[hidden]{display:none;}
+.notes-top{display:flex;align-items:center;justify-content:space-between;padding:54px 18px 8px;}
+.notes-top h1{font-size:32px;font-weight:800;letter-spacing:-.02em;}
+.notes-new{width:38px;height:38px;border-radius:50%;border:none;cursor:pointer;
+    background:rgba(255,255,255,.1);color:#ffd60a;display:flex;align-items:center;justify-content:center;
+    transition:background .15s,transform .1s;}
+.notes-new:hover{background:rgba(255,255,255,.18);}
+.notes-new:active{transform:scale(.92);}
+.notes-new svg{width:22px;height:22px;}
+.notes-list{list-style:none;flex:1;overflow-y:auto;padding:6px 14px 24px;}
+.notes-list::-webkit-scrollbar{width:0;}
+.note-row{display:flex;flex-direction:column;gap:3px;padding:12px 14px;margin-bottom:8px;
+    background:rgba(255,255,255,.06);border-radius:12px;cursor:pointer;transition:background .15s;}
+.note-row:hover{background:rgba(255,255,255,.1);}
+.note-row-title{font-size:16px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.note-row-sub{font-size:13px;color:rgba(255,255,255,.5);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.note-row-date{color:rgba(255,255,255,.7);}
+/* center over the whole view, not just the leftover space below the empty
+   list (the list's flex:1 would otherwise push this into the lower half) */
+.notes-empty{position:absolute;inset:0;display:flex;flex-direction:column;
+    align-items:center;justify-content:center;
+    gap:8px;color:rgba(255,255,255,.4);
+    /* it overlays the header, so let clicks fall through to the + button */
+    pointer-events:none;}
+.notes-empty[hidden]{display:none;}
+.notes-empty svg{width:46px;height:46px;}
+.notes-empty p{font-size:17px;font-weight:600;color:rgba(255,255,255,.6);}
+.notes-empty span{font-size:13px;}
+.notes-editor[hidden]{display:none;}
+.notes-editor-top{display:flex;align-items:center;justify-content:space-between;padding:50px 12px 6px;}
+.notes-back{display:flex;align-items:center;gap:2px;background:none;border:none;cursor:pointer;
+    color:#ffd60a;font-family:inherit;font-size:17px;padding:4px;}
+.notes-back svg{width:22px;height:22px;}
+.notes-del{background:none;border:none;cursor:pointer;color:#ffd60a;padding:6px;}
+.notes-del svg{width:21px;height:21px;}
+.notes-area{flex:1;width:100%;background:none;border:none;outline:none;resize:none;color:#fff;
+    font-family:inherit;font-size:16px;line-height:1.55;padding:6px 18px 24px;}
+.notes-area::placeholder{color:rgba(255,255,255,.35);}
+
+/* ---- Settings ---- */
+.v-settings{height:100%;display:flex;flex-direction:column;background:#000;overflow:hidden;}
+.set-top{padding:54px 18px 6px;flex-shrink:0;}
+.set-top h1{font-size:32px;font-weight:800;letter-spacing:-.02em;}
+.set-scroll{flex:1;overflow-y:auto;padding:8px 16px 26px;}
+.set-scroll::-webkit-scrollbar{width:0;}
+.set-group{background:rgba(255,255,255,.07);border-radius:14px;margin-bottom:22px;overflow:hidden;}
+.set-group-head{font-size:12px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;
+    color:rgba(255,255,255,.45);padding:11px 16px 7px;}
+.set-row{display:flex;align-items:center;gap:12px;padding:10px 14px;
+    border-bottom:1px solid rgba(255,255,255,.08);min-height:46px;}
+.set-row:last-child{border-bottom:none;}
+.set-ico{width:30px;height:30px;border-radius:8px;flex-shrink:0;display:flex;align-items:center;
+    justify-content:center;color:#fff;font-size:16px;}
+.set-label{flex:1;font-size:16px;}
+.set-value{font-size:15px;color:rgba(255,255,255,.5);}
+.set-switch{flex-shrink:0;width:51px;height:31px;border-radius:999px;background:rgba(255,255,255,.18);
+    border:none;cursor:pointer;position:relative;transition:background .25s;}
+.set-switch.on{background:#34c759;}
+.set-switch span{position:absolute;top:2px;left:2px;width:27px;height:27px;border-radius:50%;background:#fff;
+    transition:transform .25s var(--spring);box-shadow:0 2px 5px rgba(0,0,0,.3);}
+.set-switch.on span{transform:translateX(20px);}
+.set-slider-row{display:flex;align-items:center;gap:12px;padding:11px 14px 4px;}
+.set-slider-wrap{padding:6px 14px 14px;}
+.set-slider{-webkit-appearance:none;appearance:none;width:100%;height:8px;border-radius:4px;
+    background:rgba(255,255,255,.2);outline:none;cursor:pointer;}
+.set-slider::-webkit-slider-thumb{-webkit-appearance:none;appearance:none;width:26px;height:26px;
+    border-radius:50%;background:#fff;box-shadow:0 1px 5px rgba(0,0,0,.5);cursor:pointer;}
+.set-slider::-moz-range-thumb{width:26px;height:26px;border:none;border-radius:50%;background:#fff;
+    box-shadow:0 1px 5px rgba(0,0,0,.5);cursor:pointer;}
+
+/* ============================================================
+   Control Center — pulls down from the top-right
+   ============================================================ */
+/* invisible grab zone over the top-right of the status bar (z25).
+   Sits above the app view (z22) so Control Center is reachable from the
+   lock screen, home screen, AND while inside an app. It only covers the
+   empty top-right status strip, so it won't swallow real app controls. */
+.cc-trigger{position:absolute;top:0;right:0;width:46%;height:58px;z-index:28;
+    background:none;border:none;cursor:pointer;padding:0;}
+/* small gray grab-handle hint under the status icons (like the home bar) */
+.cc-hint{position:absolute;top:40px;right:31px;width:30px;height:2.5px;border-radius:2px;
+    background:rgba(255,255,255,.5);z-index:26;pointer-events:none;
+    opacity:0;transition:opacity .4s ease;}
+.screen:not(.unlocked):not(.app-open):not(.cc-open) .cc-hint{opacity:1;}
+
+.cc{position:absolute;inset:0;z-index:44;
+    padding:92px 14px 30px;
+    display:flex;flex-direction:column;
+    background:rgba(8,9,14,.55);
+    backdrop-filter:blur(34px) saturate(1.4);-webkit-backdrop-filter:blur(34px) saturate(1.4);
+    opacity:0;visibility:hidden;transform:translateY(-7%);
+    transition:opacity .34s var(--spring), transform .42s var(--spring), visibility 0s linear .42s;}
+.screen.cc-open .cc{opacity:1;visibility:visible;transform:translateY(0);
+    transition:opacity .34s var(--spring), transform .42s var(--spring), visibility 0s linear 0s;}
+
+/* status icons inside Control Center (signal/wifi left, battery+% right) */
+.cc-status{position:absolute;top:48px;left:0;right:0;
+    display:flex;align-items:center;justify-content:space-between;
+    padding:0 18px 0 26px;color:#fff;pointer-events:none;}
+.cc-status-l,.cc-status-r{display:flex;align-items:center;gap:6px;}
+.cc-st-signal{width:17px;height:11px;}
+.cc-st-wifi{width:18px;height:13px;}
+.cc-st-batt{width:25px;height:12px;}
+.cc-st-pct{font-size:13px;font-weight:600;letter-spacing:.01em;}
+
+.cc-grid{display:grid;grid-template-columns:repeat(4,1fr);grid-auto-rows:58px;gap:11px;}
+.cc-card{background:rgba(255,255,255,.13);border-radius:22px;border:none;
+    box-shadow:0 0 0 .5px rgba(255,255,255,.08) inset;color:#fff;}
+
+/* explicit placement: 2 big cards on top, then toggles + skinny sliders */
+.cc-conn  {grid-column:1/3;grid-row:1/3;}
+.cc-music {grid-column:3/5;grid-row:1/3;}
+[data-cc="orient"]    {grid-column:1;grid-row:3;}
+[data-cc="dnd"]       {grid-column:2;grid-row:3;}
+#ccBright {grid-column:3;grid-row:3/5;}
+#ccVol    {grid-column:4;grid-row:3/5;}
+[data-cc="flashlight"]{grid-column:1;grid-row:4;}
+[data-cc="camera"]    {grid-column:2;grid-row:4;}
+
+/* connectivity 2x2 round toggles */
+/* pack the four circles as a centered block so the gap controls how close they
+   sit and leaves even margins to the card edges (instead of stretching wide) */
+.cc-conn{display:grid;grid-template-columns:repeat(2,47px);grid-auto-rows:47px;
+    justify-content:center;align-content:center;gap:9px;}
+.cc-rnd{width:47px;height:47px;border-radius:50%;border:none;cursor:pointer;
+    background:rgba(120,120,128,.5);color:#fff;
+    display:flex;align-items:center;justify-content:center;transition:background .2s,transform .15s;}
+.cc-rnd:active{transform:scale(.9);}
+.cc-rnd svg{width:23px;height:23px;}
+.cc-rnd.on[data-cc="airplane"]{background:#ff9f0a;}
+.cc-rnd.on[data-cc="cellular"]{background:#34c759;}
+.cc-rnd.on[data-cc="wifi"]{background:#0a84ff;}
+.cc-rnd.on[data-cc="bluetooth"]{background:#0a84ff;}
+
+/* now-playing card — art + AirPlay up top, label, transport along the bottom */
+.cc-music{cursor:pointer;display:flex;flex-direction:column;justify-content:space-between;
+    padding:13px 15px;text-align:left;}
+.cc-music-head{display:flex;align-items:center;justify-content:space-between;}
+.cc-music-art{width:30px;height:30px;border-radius:8px;overflow:hidden;flex-shrink:0;
+    background:rgba(255,255,255,.12);}
+.cc-music-art img{width:100%;height:100%;object-fit:cover;}
+.cc-music-airplay{width:28px;height:28px;box-sizing:border-box;padding:6px;
+    border-radius:50%;background:rgba(255,255,255,.18);color:#fff;flex-shrink:0;
+    margin-right:-6px;}
+.cc-music-title{font-size:15px;font-weight:600;letter-spacing:-.01em;
+    white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.cc-music-ctrls{display:flex;align-items:center;justify-content:space-between;
+    padding:0 2px;color:#fff;}
+.cc-music-ctrls svg{width:25px;height:25px;}
+.cc-music-ctrls svg:nth-child(2){width:29px;height:29px;}
+
+/* brightness / volume — skinny tall fill sliders.
+   Track is translucent (wallpaper shows through the unfilled top); the fill is
+   near-white from the bottom; the icon is a solid mid-gray near the base so it
+   reads clearly against the white (NOT mix-blend, which made it invisible). */
+.cc-slider{position:relative;overflow:hidden;cursor:pointer;border-radius:26px;
+    background:rgba(255,255,255,.2);touch-action:none;}
+.cc-slider-fill{position:absolute;left:0;right:0;bottom:0;height:70%;
+    background:rgba(255,255,255,.95);transition:height .08s linear;}
+.cc-slider-ico{position:absolute;left:50%;bottom:15px;transform:translateX(-50%);
+    width:26px;height:26px;pointer-events:none;}
+/* iPhone-style tinted slider icons — visible on both the white fill and dark track */
+#ccBright .cc-slider-ico{color:#f7b500;}   /* sun = yellow */
+#ccVol    .cc-slider-ico{color:#0a84ff;}   /* speaker = blue */
+
+/* small square toggles */
+.cc-sq{cursor:pointer;display:flex;align-items:center;justify-content:center;
+    transition:background .2s,transform .15s;}
+.cc-sq:active{transform:scale(.93);}
+.cc-sq svg{width:26px;height:26px;color:#fff;}
+.cc-sq.on{background:#fff;}
+.cc-sq.on svg{color:#1c1c1e;}
+
+/* ---------- Responsive ---------- */
+/* aspect ratio stays locked; only the driving dimension changes */
+@media (max-width:480px){
+    :root{
+        /* Fit the phone to whichever is smaller: the viewport width, or the
+           *visible* height. svh accounts for the mobile browser's toolbars, so
+           the phone is never taller than what's on screen and never gets cut
+           off at the bottom. (The vh line is a fallback for older browsers.) */
+        --phone-h:min(80vh, calc((90vw - 2*var(--bezel)) * var(--screen-ratio) + 2*var(--bezel)));
+        --phone-h:min(calc(100svh - 22px), calc((90vw - 2*var(--bezel)) * var(--screen-ratio) + 2*var(--bezel)));
+        --phone-w:calc((var(--phone-h) - 2*var(--bezel)) / var(--screen-ratio) + 2*var(--bezel));
+        --radius:46px;
+    }
+    body{min-height:100svh;padding:0;}
+    .phone-stage{padding:8px;}
+    /* Flatten the 3D stack on mobile (there's no hover-tilt here anyway). The
+       perspective + floating animation render the screen and the frame as
+       separate, projected layers that don't align to the pixel grid, leaving a
+       sub-pixel seam at the edge where the wallpaper behind the phone bleeds
+       through — most visible against the all-black boot screen. Removing the
+       perspective and the float makes the phone paint as one pixel-aligned
+       unit so nothing can show through. (The screen keeps its own layer so the
+       rounded corners still clip the lock-screen / app-open animations.) */
+    .phone-stage{perspective:none;}
+    .phone-float{animation:none;}
+    .phone-float,.phone-zoom,.phone{will-change:auto;}
+}
+@media (max-height:760px){
+    :root{--phone-h:min(660px, 86vh);}                 /* fallback */
+    :root{--phone-h:min(660px, calc(100svh - 22px));}  /* fit visible height */
+    .lock-time{font-size:76px;}
+}
+
+/* ============================================================
+   Boot screen (#3) — power-on, once per session
+   ============================================================ */
+.bootscreen{position:absolute;inset:0;z-index:70;border-radius:inherit;background:#000;
+    display:flex;flex-direction:column;align-items:center;justify-content:center;gap:30px;
+    opacity:0;visibility:hidden;
+    /* fade the whole black layer (logo + spinner ride along) in/out smoothly;
+       visibility flips only after the fade so it never snaps */
+    transition:opacity .8s ease, visibility 0s linear .8s;}
+.screen.booting .bootscreen{opacity:1;visibility:visible;
+    transition:opacity .5s ease, visibility 0s linear 0s;}
+/* the dOS logo (bitten cloud + wordmark) sits just above the spinner.
+   Resting opacity is 1 so the exit fade is carried by the bootscreen as a
+   whole — the intro animation only handles the fade-IN. */
+.boot-logo{width:132px;height:auto;display:block;opacity:1;}
+.screen.booting .boot-logo{animation:boot-logo-in .7s var(--spring);}
+/* smaller spinner, centered as a group with the logo */
+.bootscreen .loader{width:40px;height:40px;opacity:1;}
+.screen.booting .bootscreen .loader{animation:boot-bar-in .55s ease;}
+@keyframes boot-logo-in{from{opacity:0;transform:scale(.9)}to{opacity:1;transform:scale(1)}}
+@keyframes boot-bar-in{from{opacity:0}to{opacity:1}}
+
+/* ============================================================
+   Specular glass glare (#4) — moves opposite the 3D tilt
+   ============================================================ */
+/* Oversized layer with a FIXED circular gradient, centered on the screen
+   (left/top -25% + 150% size spills evenly past every edge). It moves via
+   transform only (GPU compositor — no repaint, no mix-blend recomposite),
+   so sliding it each frame is essentially free. .screen clips the overflow. */
+.screen-glare{position:absolute;left:-25%;top:-25%;width:150%;height:150%;
+    z-index:60;pointer-events:none;opacity:0;transition:opacity .45s ease;
+    will-change:transform;transform:translate3d(0,0,0);
+    background:radial-gradient(circle 240px at 50% 50%,
+        rgba(255,255,255,.15),rgba(255,255,255,.05) 45%,transparent 72%);}
+.phone-stage.lift .screen-glare{opacity:1;}
+
+/* ============================================================
+   Spotlight search (#7)
+   ============================================================ */
+.home-search{align-self:center;margin:9px auto 0;flex-shrink:0;
+    display:flex;align-items:center;gap:5px;padding:4.5px 11px;border-radius:16px;
+    border:none;cursor:pointer;font:inherit;font-size:10.5px;font-weight:500;
+    color:rgba(255,255,255,.9);
+    background:rgba(236,240,255,.14);box-shadow:0 0 0 .5px rgba(255,255,255,.1) inset;
+    transition:background .2s,transform .2s;}
+.home-search svg{width:11px;height:11px;}
+.home-search:hover{background:rgba(236,240,255,.22);transform:scale(1.03);}
+
+.spotlight{position:absolute;inset:0;z-index:24;border-radius:inherit;
+    padding:60px 16px 16px;display:flex;flex-direction:column;gap:14px;
+    background:rgba(8,10,18,.42);
+    backdrop-filter:blur(24px) saturate(1.3);-webkit-backdrop-filter:blur(24px) saturate(1.3);
+    opacity:0;visibility:hidden;transform:translateY(-10px);
+    transition:opacity .3s var(--spring),transform .32s var(--spring),visibility 0s linear .32s;}
+.screen.spot-open .spotlight{opacity:1;visibility:visible;transform:translateY(0);
+    transition:opacity .3s var(--spring),transform .32s var(--spring),visibility 0s linear 0s;}
+.spot-field{display:flex;align-items:center;gap:9px;padding:10px 12px;border-radius:12px;
+    background:rgba(255,255,255,.16);flex-shrink:0;}
+.spot-field>svg{width:18px;height:18px;color:rgba(255,255,255,.6);flex-shrink:0;}
+.spot-field input{flex:1;min-width:0;background:none;border:none;outline:none;
+    color:#fff;font:inherit;font-size:16px;}
+.spot-field input::placeholder{color:rgba(255,255,255,.5);}
+.spot-clear{display:none;background:none;border:none;padding:0;cursor:pointer;
+    color:rgba(255,255,255,.45);flex-shrink:0;}
+.spot-clear svg{width:18px;height:18px;display:block;}
+.spot-field.has-text .spot-clear{display:block;}
+.spot-results{list-style:none;margin:0;padding:0;overflow-y:auto;
+    display:flex;flex-direction:column;gap:2px;}
+.spot-results::-webkit-scrollbar{width:0;}
+.spot-row{display:flex;align-items:center;gap:12px;width:100%;text-align:left;
+    padding:8px;border-radius:12px;border:none;cursor:pointer;font:inherit;color:#fff;
+    background:none;transition:background .15s;}
+.spot-row:hover,.spot-row:focus-visible{background:rgba(255,255,255,.1);outline:none;}
+.spot-ico{width:36px;height:36px;flex-shrink:0;border-radius:9px;overflow:hidden;
+    display:flex;align-items:center;justify-content:center;background:rgba(255,255,255,.1);}
+.spot-ico img{width:100%;height:100%;object-fit:contain;}
+.spot-meta{display:flex;flex-direction:column;min-width:0;}
+.spot-title{font-size:14px;font-weight:500;line-height:1.25;}
+.spot-sub{font-size:11px;color:rgba(255,255,255,.55);line-height:1.3;
+    white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.spot-empty{color:rgba(255,255,255,.5);font-size:13px;text-align:center;padding:28px 0;}
+
+@media (prefers-reduced-motion:reduce){
+    *{animation:none !important;}
+    .phone,.appview,.homescreen,.lockscreen,.wallpaper{transition-duration:.2s;}
+}

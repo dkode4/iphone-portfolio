@@ -1,0 +1,15 @@
+# Dependencies (none used, but just in case)
+node_modules/
+
+# Vercel
+.vercel/
+
+# OS / editor cruft
+.DS_Store
+Thumbs.db
+*.log
+
+# Local tooling
+.claude/
+
+.vercel
